@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Righteous', sans-serif;
+            background: linear-gradient(to right, #000000, #434343);
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #222;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .profile-icon {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+        }
+        .login-register {
+            margin-left: auto;
+        }
+        .login-register a {
+            color: #00f;
+            text-decoration: none;
+            margin-left: 15px;
+        }
+        .login-register a:hover {
+            text-decoration: underline;
+        }
+        .profile-container {
+            padding: 20px;
+        }
+        img {
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            border: 2px solid #00f;
+            margin-bottom: 20px;
+        }
+        label {
+            background-color: #0000FF;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        label:hover {
+            background-color: #00008B;
+        }
+        .btn {
+            background-color: #00f;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background-color: #0000ff;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html"><img src="/uploads/profile_pictures/default.png" alt="Profile" class="profile-icon"></a>
+        <div class="login-register">
+            <a href="login.html">Login</a>
+            <a href="register.html">Register</a>
+        </div>
+    </header>
+    <div class="profile-container">
+        <h1>Profile</h1>
+        <img id="profilePicture" src="" alt="Profile Picture">
+        <p id="email"></p>
+        <p id="joined"></p>
+        <p id="pastesList"></p>
+        <label for="fileUpload">Upload Profile Picture</label>
+        <input type="file" id="fileUpload" style="display: none;">
+        <a href="/api/password-reset-request" class="btn">Reset Password</a>
+    </div>
+    <script>
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        fetch('/api/profile', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('email').textContent = 'Email: ' + data.email;
+            document.getElementById('joined').textContent = 'Joined: ' + new Date(data.joined).toLocaleDateString();
+            document.getElementById('pastesList').innerHTML = 'Pastes: <ul>' + data.pastes.map(pasteId => `<li><a href="/api/paste/${pasteId}">Paste ${pasteId}</a></li>`).join('') + '</ul>';
+            if (data.profilePicture) {
+                document.getElementById('profilePicture').src = data.profilePicture;
+            } else {
+                document.getElementById('profilePicture').src = '/uploads/profile_pictures/default.png';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching profile:', error);
+        });
+
+        document.getElementById('fileUpload').addEventListener('change', function() {
+            const file = this.files[0];
+            const formData = new FormData();
+            formData.append('profilePicture', file);
+
+            fetch('/api/uploadProfilePicture', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('profilePicture').src = data.profilePicture;
+            })
+            .catch(error => {
+                console.error('Error uploading profile picture:', error);
+            });
+        });
+    </script>
+</body>
+</html>

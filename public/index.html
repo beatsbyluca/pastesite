@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pastebin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Righteous', sans-serif;
+            background: linear-gradient(to right, #000000, #434343);
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #222;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .profile-icon {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+        }
+        .login-register {
+            margin-left: auto;
+        }
+        .login-register a {
+            color: #00f;
+            text-decoration: none;
+            margin-left: 15px;
+        }
+        .login-register a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            padding: 20px;
+        }
+        .paste-form, .pastes-list {
+            margin-bottom: 20px;
+        }
+        .paste-form input, .paste-form button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+        .paste-form button {
+            background-color: #00f;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        .paste-form button:hover {
+            background-color: #0000ff;
+        }
+        .paste {
+            background-color: #333;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .paste-content {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="profile.html"><img id="profileIcon" src="/uploads/profile_pictures/default.png" alt="Profile" class="profile-icon" style="display: none;"></a>
+        <div class="login-register">
+            <a href="login.html">Login</a>
+            <a href="register.html">Register</a>
+        </div>
+    </header>
+    <div class="container">
+        <div class="paste-form">
+            <h1>Create a Paste</h1>
+            <textarea id="pasteContent" rows="10" cols="50" placeholder="Write your paste here..."></textarea>
+            <button onclick="createPaste()">Create Paste</button>
+        </div>
+        <div class="pastes-list" id="pastesList">
+            <!-- Paste items will be inserted here -->
+        </div>
+    </div>
+    <script>
+        function createPaste() {
+            const content = document.getElementById('pasteContent').value;
+            fetch('/api/createPaste', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                },
+                body: JSON.stringify({ paste: content })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.id) {
+                    alert('Paste created successfully!');
+                    loadPastes();
+                } else {
+                    alert('Error creating paste.');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating paste:', error);
+                alert('Error creating paste.');
+            });
+        }
+
+        function loadPastes() {
+            fetch('/api/pastes')
+                .then(response => response.json())
+                .then(data => {
+                    const pastesList = document.getElementById('pastesList');
+                    pastesList.innerHTML = '';
+                    data.forEach(paste => {
+                        const pasteElement = document.createElement('div');
+                        pasteElement.classList.add('paste');
+                        pasteElement.innerHTML = `
+                            <h2>Paste ${paste.id}</h2>
+                            <div class="paste-content">${paste.content}</div>
+                        `;
+                        pastesList.appendChild(pasteElement);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading pastes:', error);
+                });
+        }
+
+        // Load pastes when the page loads
+        document.addEventListener('DOMContentLoaded', loadPastes);
+
+        // Update profile icon if logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                fetch('/api/profile', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const profileIcon = document.getElementById('profileIcon');
+                    profileIcon.src = data.profilePicture || '/uploads/profile_pictures/default.png';
+                    profileIcon.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error fetching profile:', error);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
